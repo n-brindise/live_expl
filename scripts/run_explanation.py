@@ -25,6 +25,8 @@ def load_scenario_data(**data_loc):
     
     with open(path, "r") as f:
         data = json.load(f)
+        
+    return data
 
 
 def send_to_module(formtype, trace, onTimes, offTimes):
@@ -82,7 +84,7 @@ def send_to_module(formtype, trace, onTimes, offTimes):
 def run_explanation(**expl_config):
     # load data
     scen_data = load_scenario_data(**data_loc)
-    
+
     formula_trees = scen_data['formula_trees']
     formula_strs = scen_data['formula_strs']
     
@@ -96,18 +98,63 @@ def run_explanation(**expl_config):
             formula_trees.append(pt.parse_tree(formula))
             
     num_rules = len(formula_trees)
-
+    print('numrules: ', num_rules)
+    print(formula_trees)
     
     #########################################################################
     # Timeset Construction (Structure from which to extract expls)
-    #########################################################################   
+    ######################################################################### 
     
-         
+    def mineTree(branch, branchNo, rule_dicts):
+        rule_dicts[rule_no][branchNo] = dict()
+        
+        # Find/store branch type 
+        branchType = branch[0]
+        print('branchType: ', branchType)
+        rule_dicts[rule_no][branchNo]['type'] = branchType
+        # Create empty timesets
+        rule_dicts[rule_no][branchNo]['tau_a'] = []
+        rule_dicts[rule_no][branchNo]['tau_s'] = []
+        rule_dicts[rule_no][branchNo]['tau_i'] = []
+        rule_dicts[rule_no][branchNo]['tau_v'] = []
+        rule_dicts[rule_no][branchNo]['tau*'] = []
+        rule_dicts[rule_no][branchNo]['onTimes'] = []
+        rule_dicts[rule_no][branchNo]['offTimes'] = []
+        
+        # Move on to branch arguments
+        #   Handle if we've reached a leaf:
+        if branchType == 'AP':
+            return rule_dicts
+        else:
+            #   Num of arguments:
+            branches = len(branch)-1
+            print('branches: (len(branch)-1:', branches)
+            print('branch[1]:', branch[1])
+            #   Loop through each branch of current branch:
+            for b in range(0,branches):
+                branch_b=branch[b+1]
+                branchNo_b = f"{branchNo}.{b}"
+                rule_dicts = mineTree(branch_b, branchNo_b, rule_dicts)
+            return rule_dicts
+      
+    rule_dicts = [None]*num_rules
     
+    for rule_no, tree in enumerate(formula_trees):
+        rule_dicts[rule_no] = dict()
+        
+        branchNo = str(rule_no)
+        #print('tree[0]:', tree[0])
+        #print('tree[1]:', tree[1])
+        #print('tree[1][0]:', tree[1][0])
+        #print('tree[1][1]:', tree[1][1])
+        emptyTree = mineTree(tree, branchNo, rule_dicts)
+    
+   
+
     #########################################################################
     # Explanation Algorithm ("Activeness Assessment")
     #########################################################################
-
+    print(emptyTree)
 
 
 if __name__ == '__main__':
