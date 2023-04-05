@@ -89,6 +89,7 @@ def run_explanation(**expl_config):
     formula_strs = scen_data['formula_strs']
     
     trace = scen_data['trace']
+    vocab = scen_data['vocab']
     
     # Check if formulas are already expressed as trees:
     if len(formula_trees) == 0:
@@ -164,7 +165,46 @@ def run_explanation(**expl_config):
     # Alternately, the "dumb" option is to just make the intervals for all \alpha\in AP from the start.
     # 
     # Either way, we can easily populate these boolean intervals. The question is what to do after that.
-    # 
+    # Each leaf has an associated branch number. We can:
+    #   Move up the branch (by truncating the last .x in the branch number). 
+    #   Once we get there, we check if the branch is fully "informed". If yes, 
+    #       -call appropriate module to get current branch's intervals
+    #       -move up again (continue)
+    #   If not,
+    #       -continue to next item in leaf list
+    
+    # For now, we'll do this the dumb way, and produce info for all alpha in AP.
+    num_props = len(vocab)
+    propnumlabels = dict()
+    
+    for idx, prop in enumerate(vocab):
+        propnumlabels[prop] = idx
+    
+    onFlags = [False]*num_props
+    onTimes = [[] for x in range (num_props)]
+    offTimes = [[] for x in range (num_props)]
+    print('onTimes empty: ', onTimes)
+    
+    for timestep in range(0, trace_len):
+        for prop in trace[timestep]:
+            propidx = propnumlabels[prop]
+            
+            if not onFlags[propidx]:
+                onFlags[propidx] = True
+                onTimes[propidx].append(timestep)
+            
+            if timestep + 1 < trace_len:
+                if prop not in trace[timestep+1]:
+                    offTimes[propidx].append(timestep+1)
+                    onFlags[propidx] = False
+                    
+
+    print('onTimes: ', onTimes)               
+    print('offTimes: ', offTimes)
+
+                
+            
+
 
     #########################################################################
     # Explanation Algorithm ("Activeness Assessment")
