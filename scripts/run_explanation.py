@@ -105,56 +105,71 @@ def run_explanation(**expl_config):
     # Timeset Construction (Structure from which to extract expls)
     ######################################################################### 
     
-    def mineTree(branch, branchNo, rule_dicts):
+    def mineTree(branch, branchNo, rule_dicts, trace_len, leaf_list):
+        # Function to create empty tree structure 
+        # Tree will contain (1) branch number (e.g. "1.2.2"),
+        # (2) branch type, and (3) empty on/off and tau timesets
         rule_dicts[rule_no][branchNo] = dict()
         
         # Find/store branch type 
         branchType = branch[0]
-        print('branchType: ', branchType)
+        #print('branchType: ', branchType)
         rule_dicts[rule_no][branchNo]['type'] = branchType
         # Create empty timesets
-        rule_dicts[rule_no][branchNo]['tau_a'] = []
-        rule_dicts[rule_no][branchNo]['tau_s'] = []
-        rule_dicts[rule_no][branchNo]['tau_i'] = []
-        rule_dicts[rule_no][branchNo]['tau_v'] = []
-        rule_dicts[rule_no][branchNo]['tau*'] = []
-        rule_dicts[rule_no][branchNo]['onTimes'] = []
-        rule_dicts[rule_no][branchNo]['offTimes'] = []
+        rule_dicts[rule_no][branchNo]['tau_a'] = [list()]*trace_len
+        rule_dicts[rule_no][branchNo]['tau_s'] = [list()]*trace_len
+        rule_dicts[rule_no][branchNo]['tau_i'] = [list()]*trace_len
+        rule_dicts[rule_no][branchNo]['tau_v'] = [list()]*trace_len
+        rule_dicts[rule_no][branchNo]['tau*'] = [list()]*trace_len
+        rule_dicts[rule_no][branchNo]['onTimes'] = list()
+        rule_dicts[rule_no][branchNo]['offTimes'] = list()
         
         # Move on to branch arguments
         #   Handle if we've reached a leaf:
         if branchType == 'AP':
-            return rule_dicts
+            leaf_list.append(branchNo)
+            print('branchNo: ', branchNo)
+            print('leaf_list now: ', leaf_list)
+            return rule_dicts, leaf_list
         else:
             #   Num of arguments:
             branches = len(branch)-1
-            print('branches: (len(branch)-1:', branches)
-            print('branch[1]:', branch[1])
+            
             #   Loop through each branch of current branch:
             for b in range(0,branches):
                 branch_b=branch[b+1]
                 branchNo_b = f"{branchNo}.{b}"
-                rule_dicts = mineTree(branch_b, branchNo_b, rule_dicts)
-            return rule_dicts
+                rule_dicts, leaf_list = mineTree(branch_b, branchNo_b, rule_dicts, trace_len, leaf_list)
+            return rule_dicts, leaf_list
       
     rule_dicts = [None]*num_rules
+    trace_len = len(trace)
     
+    full_leaf_list = list()
     for rule_no, tree in enumerate(formula_trees):
         rule_dicts[rule_no] = dict()
         
         branchNo = str(rule_no)
-        #print('tree[0]:', tree[0])
-        #print('tree[1]:', tree[1])
-        #print('tree[1][0]:', tree[1][0])
-        #print('tree[1][1]:', tree[1][1])
-        emptyTree = mineTree(tree, branchNo, rule_dicts)
-    
+        emptyTree, leaf_list_tree = mineTree(tree, branchNo, rule_dicts, trace_len, list())
+        print('leaf_list_tree: ', leaf_list_tree)
+        full_leaf_list.append(leaf_list_tree)
+        
    
+    print('full_leaf_list: ', full_leaf_list)
+    
+    # We now have a list of all the leaves. 
+    # We can easily go through each of them and assign intervals. 
+    # To do this, we can first create entries for every \alpha\in AP and only populate the ones needed
+    #   by the leaves (and avoid re-calculating any). 
+    # Alternately, the "dumb" option is to just make the intervals for all \alpha\in AP from the start.
+    # 
+    # Either way, we can easily populate these boolean intervals. The question is what to do after that.
+    # 
 
     #########################################################################
     # Explanation Algorithm ("Activeness Assessment")
     #########################################################################
-    print(emptyTree)
+    #print(emptyTree)
 
 
 if __name__ == '__main__':
