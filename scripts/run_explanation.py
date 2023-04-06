@@ -106,7 +106,7 @@ def run_explanation(**expl_config):
     # Timeset Construction (Structure from which to extract expls)
     ######################################################################### 
     
-    def mineTree(branch, branchNo, rule_dicts, trace_len, leaf_list):
+    def mineTree(branch, branchNo, rule_dicts, trace_len, leaf_list, leaf_atoms):
         # Function to create empty tree structure 
         # Tree will contain (1) branch number (e.g. "1.2.2"),
         # (2) branch type, and (3) empty on/off and tau timesets
@@ -129,9 +129,11 @@ def run_explanation(**expl_config):
         #   Handle if we've reached a leaf:
         if branchType == 'AP':
             leaf_list.append(branchNo)
+            atom = branch[1][0]
+            print('atom: ', atom)
+            leaf_atoms.append(atom)
             print('branchNo: ', branchNo)
-            print('leaf_list now: ', leaf_list)
-            return rule_dicts, leaf_list
+            return rule_dicts, leaf_list, leaf_atoms
         else:
             #   Num of arguments:
             branches = len(branch)-1
@@ -140,24 +142,24 @@ def run_explanation(**expl_config):
             for b in range(0,branches):
                 branch_b=branch[b+1]
                 branchNo_b = f"{branchNo}.{b}"
-                rule_dicts, leaf_list = mineTree(branch_b, branchNo_b, rule_dicts, trace_len, leaf_list)
-            return rule_dicts, leaf_list
+                rule_dicts, leaf_list, leaf_atoms = mineTree(branch_b, branchNo_b, rule_dicts, trace_len, leaf_list, leaf_atoms)
+            return rule_dicts, leaf_list, leaf_atoms
       
     rule_dicts = [None]*num_rules
     trace_len = len(trace)
     
     full_leaf_list = list()
+    full_leaf_atoms = list()
+    
     for rule_no, tree in enumerate(formula_trees):
         rule_dicts[rule_no] = dict()
         
         branchNo = str(rule_no)
-        emptyTree, leaf_list_tree = mineTree(tree, branchNo, rule_dicts, trace_len, list())
-        print('leaf_list_tree: ', leaf_list_tree)
+        rule_dicts, leaf_list_tree, leaf_atoms = mineTree(tree, branchNo, rule_dicts, trace_len, list(), list())
         full_leaf_list.append(leaf_list_tree)
-        
-   
+        full_leaf_atoms.append(leaf_atoms)
     print('full_leaf_list: ', full_leaf_list)
-    
+    print('full_leaf_atoms: ', full_leaf_atoms)
     # We now have a list of all the leaves. 
     # We can easily go through each of them and assign intervals. 
     # To do this, we can first create entries for every \alpha\in AP and only populate the ones needed
@@ -174,6 +176,8 @@ def run_explanation(**expl_config):
     #       -continue to next item in leaf list
     
     # For now, we'll do this the dumb way, and produce info for all alpha in AP.
+    
+    # Find on/off times for boolean propositions in trace
     num_props = len(vocab)
     propnumlabels = dict()
     
@@ -183,7 +187,6 @@ def run_explanation(**expl_config):
     onFlags = [False]*num_props
     onTimes = [[] for x in range (num_props)]
     offTimes = [[] for x in range (num_props)]
-    print('onTimes empty: ', onTimes)
     
     for timestep in range(0, trace_len):
         for prop in trace[timestep]:
@@ -202,7 +205,23 @@ def run_explanation(**expl_config):
     print('onTimes: ', onTimes)               
     print('offTimes: ', offTimes)
 
-                
+    # We now will build up from the leaves in the trees to the top level, populating \tau as we go
+            
+    for tidx, tree in enumerate(full_leaf_list):
+        for lidx, leaf in enumerate(tree):
+            print(f'tree {tidx} leaf: {leaf}')
+            # Find prop number corresponding to prop name for current leaf
+            propName = full_leaf_atoms[tidx][lidx]
+            print('propName: ', propName)
+            propNo = propnumlabels[propName]
+            
+            print('propNo: ', propNo)
+            # Access on/off interval data
+        
+            
+            
+            
+            #rule_dicts[str(tidx)][leaf]
             
 
 
