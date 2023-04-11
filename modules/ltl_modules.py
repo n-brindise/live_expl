@@ -9,10 +9,7 @@ from pathlib import Path
 import numpy as np
 import scripts.run_explanation as run_expl
 
-def nextX(onTimes, offTimes, t0times, trace):
-    ons = []
-    offs = []
-    onFlag = False
+def nextX(t0times, trace):
     t0s = np.zeros(len(trace))
     
     print('t0times[0]: ', t0times[0])
@@ -21,20 +18,11 @@ def nextX(onTimes, offTimes, t0times, trace):
         # Use formula for "next"
         if t0times[0][time+1] == 1:
             t0s[time] = 1
-            if not onFlag:
-                onFlag = True
-                ons.append(time)
-        else:
-            if onFlag:
-                onFlag = False
-                offs.append(time)        
-    return ons, offs, t0s
+       
+    return t0s
 
 
-def futureF(onTimes, offTimes, t0times, trace):
-    ons = []
-    offs = []
-    onFlag = False
+def futureF(t0times, trace):
     t0s = np.zeros(len(trace))
     
     print('t0times[0]: ', t0times[0])
@@ -43,88 +31,130 @@ def futureF(onTimes, offTimes, t0times, trace):
         # Use formula for "eventually"
         if np.sum(t0times[0][time:None] >= 1):
             t0s[time] = 1
-            if not onFlag:
-                onFlag = True
-                ons.append(time)
-        else:
-            if onFlag:
-                onFlag = False
-                offs.append(time)        
-    return ons, offs, t0s
+     
+    return t0s
     
-def alwaysG(onTimes, offTimes, t0times, trace):
-    ons = []
-    offs = []
-    onFlag = False
+def alwaysG(t0times, trace):
     t0s = np.zeros(len(trace))
-    
     print('t0times[0]: ', t0times[0])
     
     for time in range(0,len(trace)):
         # Use formula for "always"
-        print("Globally checks: ")
-        print('time: ', time)
-        print('length check: ', len(t0times[0][time:None]))
-        print(np.sum(t0times[0][time:None]))
-        print(len(trace)-time)
         if np.sum(t0times[0][time:None]) == len(trace)-time:
             t0s[time:None] = np.ones(len(trace)-time)
-            ons.append(time)
             break 
         
-    return ons, offs, t0s
+    return t0s
 
-def untilU(onTimes, offTimes, t0times, trace):
-    # NOT FUNCTIONING
-    ons = []
-    offs = []
-    onFlag = False
+def untilU(t0times, trace):
     t0s = np.zeros(len(trace))
+    t0timesArg2 = t0times[1]            
+    # Want to check if arg1 holds up to the min time that arg2 
+    # starts holding (within our range set by t0)
+    arg2OnIndices = []
     
-    print('t0times[0]: ', t0times[0])
-    print('t0times[1]: ', t0times[1])
+    for time in range(0, len(trace)):
+        if t0timesArg2[time] == 1:
+            arg2OnIndices.append(time)
     
+    print('arg2OnIndices: ', arg2OnIndices)
     for time in range(0,len(trace)):
+        arg2inRange = arg2OnIndices[time:None]
+        
         # Use formula for "until"
-        if np.sum(t0times[0][time:None] >= 1):
-            t0s[time] = 1
-            if not onFlag:
-                onFlag = True
-                ons.append(time)
-        else:
-            if onFlag:
-                onFlag = False
-                offs.append(time)        
-    return ons, offs, t0s
+        if len(arg2inRange) > 0:
+            minArg2On = min(arg2inRange)
+            print('minArg2On: ', minArg2On)
+            
+            if np.sum(t0times[0][time:minArg2On]) == (minArg2On)-time:
+                t0s[time:minArg2On] = np.ones((minArg2On)-time)
+                
+    print('until on-times: ', t0s)
+    return t0s
 
-def weakuntilW(onTimes, offTimes, t0times, trace):
-    # NOT FUNCTIONING
-    ons = []
-    offs = []
-    onFlag = False
+def weakuntilW(t0times, trace):
     t0s = np.zeros(len(trace))
+    t0timesArg2 = t0times[1]               
+    arg2OnIndices = []
     
-    print('t0times[0]: ', t0times[0])
-    print('t0times[1]: ', t0times[1])
+    for time in range(0, len(trace)):
+        if t0timesArg2[time] == 1:
+            arg2OnIndices.append(time)
     
+    print('arg2OnIndices: ', arg2OnIndices)
     for time in range(0,len(trace)):
-        # Use formula for "until"
-        if np.sum(t0times[0][time:None] >= 1):
-            t0s[time] = 1
-            if not onFlag:
-                onFlag = True
-                ons.append(time)
+        arg2inRange = arg2OnIndices[time:None]
+        
+        # Use formula for "weak until"
+        if len(arg2inRange) > 0:
+            minArg2On = min(arg2inRange)
+            print('minArg2On: ', minArg2On)
+            
+            if np.sum(t0times[0][time:minArg2On]) == (minArg2On)-time:
+                t0s[time:minArg2On] = np.ones((minArg2On)-time)    
         else:
-            if onFlag:
-                onFlag = False
-                offs.append(time)        
-    return ons, offs, t0s
-def strongreleaseM(onTimes, offTimes, trace):
-    pass
-def releaseR(onTimes, offTimes, trace):
-    pass
+            if np.sum(t0times[0][time:None]) == len(trace)-time:
+                t0s[time:None] = np.ones(len(trace)-time)
+                break 
+                
+    print('weak until on-times: ', t0s)
+    return t0s
+
+def strongreleaseM(t0times, trace):
+    t0s = np.zeros(len(trace))
+    t0timesArg2 = t0times[1]            
+    arg2OnIndices = []
     
-def orMod(onTimes, offTimes, t0times, trace):
+    for time in range(0, len(trace)):
+        if t0timesArg2[time] == 1:
+            arg2OnIndices.append(time)
+    
+    print('arg2OnIndices: ', arg2OnIndices)
+    for time in range(0,len(trace)):
+        arg2inRange = arg2OnIndices[time:None]
+        
+        # Use formula for "strong release"
+        if len(arg2inRange) > 0:
+            minArg2On = min(arg2inRange)
+            print('minArg2On: ', minArg2On)
+            
+            if np.sum(t0times[0][time:minArg2On+1]) == (minArg2On+1)-time:
+                t0s[time:minArg2On+1] = np.ones((minArg2On+1)-time)     
+                
+    print('strong release on-times: ', t0s)
+    return t0s
+
+
+def releaseR(t0times, trace):
+    t0s = np.zeros(len(trace))
+    t0timesArg2 = t0times[1]            
+    
+    arg2OnIndices = []
+    
+    for time in range(0, len(trace)):
+        if t0timesArg2[time] == 1:
+            arg2OnIndices.append(time)
+    
+    print('arg2OnIndices: ', arg2OnIndices)
+    for time in range(0,len(trace)):
+        arg2inRange = arg2OnIndices[time:None]
+        
+        # Use formula for "release"
+        if len(arg2inRange) > 0:
+            minArg2On = min(arg2inRange)
+            print('minArg2On: ', minArg2On)
+            
+            if np.sum(t0times[0][time:minArg2On+1]) == (minArg2On+1)-time:
+                t0s[time:minArg2On+1] = np.ones((minArg2On+1)-time)    
+        else:
+            if np.sum(t0times[0][time:None]) == len(trace)-time:
+                t0s[time:None] = np.ones(len(trace)-time)
+                break 
+                
+    print('release on-times: ', t0s)
+    return t0s
+    
+def orMod(t0times, trace):
     t0s = np.zeros(len(trace))
     summedt0times = np.sum(t0times, axis=0)
     
@@ -132,50 +162,34 @@ def orMod(onTimes, offTimes, t0times, trace):
         if summedt0times[timestep] > 0:
             t0s[timestep] = 1
         
-    #on/off times not functional
-    ons = offTimes[0]
-    offs = onTimes[0]
-    
     print('t0s: ', t0s)
-    return ons, offs, t0s
+    return t0s
 
-def andMod(onTimes, offTimes, t0times, trace):
+def andMod(t0times, trace):
     t0s = np.zeros(len(trace))
-    noArgs = len(onTimes)
+    noArgs = len(t0times)
     summedt0times = np.sum(t0times, axis=0)
     
     for timestep in range(0,len(trace)):
         if summedt0times[timestep] == noArgs:
             t0s[timestep] = 1
         
-    #on/off times not functional
-    ons = offTimes[0]
-    offs = onTimes[0]
-    
     print('t0s: ', t0s)
-    return ons, offs, t0s
+    return t0s
 
-def negMod(onTimes, offTimes, t0times, trace):
-    # Note: on and off times may be janky this way
-    ons = offTimes[0]
-    offs = onTimes[0]
+def negMod(t0times, trace):
     t0s = np.ones(len(trace)) - t0times[0]
     
     print('t0s: ', t0s)
-    return ons, offs, t0s
+    return t0s
 
-def impl(onTimes, offTimes, t0times, trace):
+def impl(t0times, trace):
     t0s = np.ones(len(trace))
     
     for timestep in range(0,len(trace)):
         # A bit dumber than necessary for now:
-        
         if t0times[0][timestep] == 1 and t0times[1][timestep] == 0:
             t0s[timestep] = 0
         
-    #on/off times not functional
-    ons = offTimes[0]
-    offs = onTimes[0]
-    
     print('t0s: ', t0s)
-    return ons, offs, t0s
+    return t0s

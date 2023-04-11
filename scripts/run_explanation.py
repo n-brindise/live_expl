@@ -122,8 +122,7 @@ def run_explanation(**expl_config):
         #rule_dicts[rule_no][branchNo]['tau_i'] = [list()]*trace_len
         #rule_dicts[rule_no][branchNo]['tau_v'] = [list()]*trace_len
         #rule_dicts[rule_no][branchNo]['tau*'] = [list()]*trace_len
-        rule_dicts[rule_no][branchNo]['onTimes'] = list()
-        rule_dicts[rule_no][branchNo]['offTimes'] = list()
+
         rule_dicts[rule_no][branchNo]['t0sForTrue'] = list()
         rule_dicts[rule_no][branchNo]['instantiated?'] = False
         rule_dicts[rule_no][branchNo]['children'] = list()
@@ -189,11 +188,6 @@ def run_explanation(**expl_config):
     for idx, prop in enumerate(vocab):
         propnumlabels[prop] = idx
     
-    # Create lists of JUST transitional times
-    onFlags = [False]*num_props
-    onTimes = [[] for x in range (num_props)]
-    offTimes = [[] for x in range (num_props)]
-    
     # Create list of ALL initial times for which formula holds
     t0sForTrue = np.zeros(shape=(num_props, trace_len))
     
@@ -201,19 +195,7 @@ def run_explanation(**expl_config):
         for prop in trace[timestep]:
             propidx = propnumlabels[prop]
             t0sForTrue[propidx][timestep] = 1
-            
-            if not onFlags[propidx]:
-                onFlags[propidx] = True
-                onTimes[propidx].append(timestep)
-            
-            if timestep + 1 < trace_len:
-                if prop not in trace[timestep+1]:
-                    offTimes[propidx].append(timestep+1)
-                    onFlags[propidx] = False
                     
-
-    print('onTimes: ', onTimes)               
-    print('offTimes: ', offTimes)
     print('t0sForTrue: ', t0sForTrue)
     # We now will build up from the leaves in the trees to the top level, populating \tau as we go
             
@@ -226,17 +208,13 @@ def run_explanation(**expl_config):
             propNo = propnumlabels[propName]
             
             # Store on/off interval data for leaves
-            rule_dicts[tidx][leaf]['onTimes'] = onTimes[propNo]
-            rule_dicts[tidx][leaf]['offTimes'] = offTimes[propNo]
             rule_dicts[tidx][leaf]['t0sForTrue'] = t0sForTrue[propNo]
             rule_dicts[tidx][leaf]['instantiated?'] = True
             
     # Leaves are now finished. Time to build up the rest of the tree, incl using modules.
     
-    def onOffTimesBranch(tidx, branch, rule_dicts, trace):
+    def onTimesBranch(tidx, branch, rule_dicts, trace):
         
-        argOnTimes = []
-        argOffTimes = []
         argt0Times = []
         for child in rule_dicts[tidx][branch]['children']:
             # Check whether any children are still empty...
@@ -244,8 +222,6 @@ def run_explanation(**expl_config):
             if not rule_dicts[tidx][child]['instantiated?']:
                 return rule_dicts
             else:
-                argOnTimes.append(rule_dicts[tidx][child]['onTimes'])
-                argOffTimes.append(rule_dicts[tidx][child]['offTimes'])
                 argt0Times.append(rule_dicts[tidx][child]['t0sForTrue'])
                 print('Branch evaluated: ', branch)
                 
@@ -255,41 +231,39 @@ def run_explanation(**expl_config):
         print('module name: ', module_name)
         # Send to appropriate module
         if module_name == 'X':
-            onTimes, offTimes, t0sForTrue = mods.nextX(argOnTimes, argOffTimes, argt0Times, trace)
+            t0sForTrue = mods.nextX(argt0Times, trace)
         elif module_name == 'F':
-            onTimes, offTimes, t0sForTrue = mods.futureF(argOnTimes, argOffTimes, argt0Times, trace)
+            t0sForTrue = mods.futureF(argt0Times, trace)
         elif module_name == 'G':
-            onTimes, offTimes, t0sForTrue = mods.alwaysG(argOnTimes, argOffTimes, argt0Times, trace)
+            t0sForTrue = mods.alwaysG(argt0Times, trace)
         elif module_name == 'neg':
-            onTimes, offTimes, t0sForTrue = mods.negMod(argOnTimes, argOffTimes, argt0Times, trace)        
+            t0sForTrue = mods.negMod(argt0Times, trace)        
         elif module_name == 'U':
-            onTimes, offTimes, t0sForTrue = mods.untilU(argOnTimes, argOffTimes, argt0Times, trace)
+            t0sForTrue = mods.untilU(argt0Times, trace)
         elif module_name == 'W':
-            onTimes, offTimes, t0sForTrue = mods.weakuntilW(argOnTimes, argOffTimes, argt0Times, trace)
+            t0sForTrue = mods.weakuntilW(argt0Times, trace)
         elif module_name == 'M':
-            onTimes, offTimes, t0sForTrue = mods.strongreleaseM(argOnTimes, argOffTimes, argt0Times, trace)
+            t0sForTrue = mods.strongreleaseM(argt0Times, trace)
         elif module_name == 'R':
-            onTimes, offTimes, t0sForTrue = mods.releaseR(argOnTimes, argOffTimes, argt0Times, trace)
+            t0sForTrue = mods.releaseR(argt0Times, trace)
         elif module_name == 'or':
-            onTimes, offTimes, t0sForTrue = mods.orMod(argOnTimes, argOffTimes, argt0Times, trace)
+            t0sForTrue = mods.orMod(argt0Times, trace)
         elif module_name == 'and':
-            onTimes, offTimes, t0sForTrue = mods.andMod(argOnTimes, argOffTimes, argt0Times, trace)
+            t0sForTrue = mods.andMod(argt0Times, trace)
         elif module_name == '->':
-            onTimes, offTimes, t0sForTrue = mods.impl(argOnTimes, argOffTimes, argt0Times, trace)
+            t0sForTrue = mods.impl(argt0Times, trace)
 
         else: 
             print('Invalid LTL formula in tree.')
             return list()
-              
-        rule_dicts[tidx][branch]['onTimes'] = onTimes
-        rule_dicts[tidx][branch]['offTimes'] = offTimes   
+
         rule_dicts[tidx][branch]['t0sForTrue'] = t0sForTrue
         rule_dicts[tidx][branch]['instantiated?'] = True
         
         nextBranchUp = rule_dicts[tidx][branch]['parent']
         
         if len(nextBranchUp)>0:
-            rule_dicts = onOffTimesBranch(tidx, nextBranchUp, rule_dicts, trace)
+            rule_dicts = onTimesBranch(tidx, nextBranchUp, rule_dicts, trace)
         
         return rule_dicts
     
@@ -299,16 +273,23 @@ def run_explanation(**expl_config):
             # Find name of branch above (parent branch)
             branchUp = rule_dicts[tidx][leaf]['parent']  
             # Recursively work up the tree (dead-ends when a branch isn't fully instantiated)
-            rule_dicts = onOffTimesBranch(tidx, branchUp, rule_dicts, trace)
+            rule_dicts = onTimesBranch(tidx, branchUp, rule_dicts, trace)
 
     #########################################################################
     # Explanation Algorithm ("Activeness Assessment")
     #########################################################################
-    #print(emptyTree)
+
     for tree in rule_dicts:
         for branch in tree:
             print(branch, ' (type ', tree[branch]['type'],'):')
             print(tree[branch]['t0sForTrue'])
+            
+    # Start thinking about support for query types here.
+    # You will be able to...
+    #   1) pick a branch of a rule
+    #   2) select a t*_0 and t*
+    #   3) receive status information
+    # We still need to implement timesets of interest (and timesets in general).
         
 
 if __name__ == '__main__':
