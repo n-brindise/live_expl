@@ -117,11 +117,11 @@ def run_explanation(**expl_config):
         #print('branchType: ', branchType)
         rule_dicts[rule_no][branchNo]['type'] = branchType
         # Create empty timesets
-        #rule_dicts[rule_no][branchNo]['tau_a'] = [list()]*trace_len
-        #rule_dicts[rule_no][branchNo]['tau_s'] = [list()]*trace_len
-        #rule_dicts[rule_no][branchNo]['tau_i'] = [list()]*trace_len
-        #rule_dicts[rule_no][branchNo]['tau_v'] = [list()]*trace_len
-        #rule_dicts[rule_no][branchNo]['tau*'] = [list()]*trace_len
+        rule_dicts[rule_no][branchNo]['tau_a'] = [[]]*trace_len
+        rule_dicts[rule_no][branchNo]['tau_s'] = [[]]*trace_len
+        rule_dicts[rule_no][branchNo]['tau_i'] = [[]]*trace_len
+        rule_dicts[rule_no][branchNo]['tau_v'] = [[]]*trace_len
+        rule_dicts[rule_no][branchNo]['tau*'] = [[]]*trace_len
 
         rule_dicts[rule_no][branchNo]['t0sForTrue'] = list()
         rule_dicts[rule_no][branchNo]['instantiated?'] = False
@@ -133,9 +133,9 @@ def run_explanation(**expl_config):
         if branchType == 'AP':
             leaf_list.append(branchNo)
             atom = branch[1][0]
-            print('atom: ', atom)
+            #print('atom: ', atom)
             leaf_atoms.append(atom)
-            print('branchNo: ', branchNo)
+            #print('branchNo: ', branchNo)
             return rule_dicts, leaf_list, leaf_atoms
         else:
             #   Num of arguments:
@@ -181,7 +181,7 @@ def run_explanation(**expl_config):
     
     # For now, we'll do this the dumb way, and produce info for all alpha in AP.
     
-    # Find on/off times for boolean propositions in trace
+    # Find on-times for boolean propositions in trace
     num_props = len(vocab)
     propnumlabels = dict()
     
@@ -192,11 +192,30 @@ def run_explanation(**expl_config):
     t0sForTrue = np.zeros(shape=(num_props, trace_len))
     
     for timestep in range(0, trace_len):
+        # Default values for prop off:
+        """         tau_a = np.zeros(trace_len - timestep)
+        tau_s = np.zeros(trace_len - timestep)
+        tau_i = np.zeros(trace_len - timestep)
+        tau_v = np.ones(trace_len - timestep)  """
+        
+        # If prop on:
         for prop in trace[timestep]:
             propidx = propnumlabels[prop]
             t0sForTrue[propidx][timestep] = 1
+            
+            """             tau_a[0] = 1
+            tau_s[0] = 1
+            tau_v = np.zeros(trace_len - timestep)
+            
+            if not timestep == trace_len - 1:
+                tau_i[1:None] = np.ones(trace_len - (timestep+1))
+
+            rule_dicts[rule_no][branchNo]['tau_a'][timestep]= tau_a
+            rule_dicts[rule_no][branchNo]['tau_s'][timestep]= tau_s
+            rule_dicts[rule_no][branchNo]['tau_i'][timestep]= tau_i
+            rule_dicts[rule_no][branchNo]['tau_v'][timestep]= tau_v """
                     
-    print('t0sForTrue: ', t0sForTrue)
+    #print('t0sForTrue: ', t0sForTrue)
     # We now will build up from the leaves in the trees to the top level, populating \tau as we go
             
     for tidx, tree in enumerate(full_leaf_list):
@@ -233,23 +252,23 @@ def run_explanation(**expl_config):
         if module_name == 'X':
             t0sForTrue = mods.nextX(argt0Times, trace)
         elif module_name == 'F':
-            t0sForTrue = mods.futureF(argt0Times, trace)
+           t0sForTrue = mods.futureF(argt0Times, trace)
         elif module_name == 'G':
             t0sForTrue = mods.alwaysG(argt0Times, trace)
         elif module_name == 'neg':
-            t0sForTrue = mods.negMod(argt0Times, trace)        
+            t0sForTrue = mods.negMod(argt0Times, trace)     
         elif module_name == 'U':
             t0sForTrue = mods.untilU(argt0Times, trace)
         elif module_name == 'W':
-            t0sForTrue = mods.weakuntilW(argt0Times, trace)
+            t0sForTrue= mods.weakuntilW(argt0Times, trace)
         elif module_name == 'M':
-            t0sForTrue = mods.strongreleaseM(argt0Times, trace)
+            t0sForTrue= mods.strongreleaseM(argt0Times, trace)
         elif module_name == 'R':
             t0sForTrue = mods.releaseR(argt0Times, trace)
         elif module_name == 'or':
             t0sForTrue = mods.orMod(argt0Times, trace)
         elif module_name == 'and':
-            t0sForTrue = mods.andMod(argt0Times, trace)
+            t0sForTrue= mods.andMod(argt0Times, trace)
         elif module_name == '->':
             t0sForTrue = mods.impl(argt0Times, trace)
 
@@ -259,6 +278,11 @@ def run_explanation(**expl_config):
 
         rule_dicts[tidx][branch]['t0sForTrue'] = t0sForTrue
         rule_dicts[tidx][branch]['instantiated?'] = True
+        
+        """         rule_dicts[rule_no][branchNo]['tau_a'] = ta
+        rule_dicts[rule_no][branchNo]['tau_s'] = ts
+        rule_dicts[rule_no][branchNo]['tau_i'] = ti
+        rule_dicts[rule_no][branchNo]['tau_v'] = tv """
         
         nextBranchUp = rule_dicts[tidx][branch]['parent']
         
@@ -290,6 +314,32 @@ def run_explanation(**expl_config):
     #   2) select a t*_0 and t*
     #   3) receive status information
     # We still need to implement timesets of interest (and timesets in general).
+    
+    # Query format: list of dictionaries.
+    # Each entry is a dict() containing:
+    #   -'ruleNo': number of the rule (int)
+    #   -'branch': branch name (str)
+    #   -'t0*': the query initial time (int)
+    #   -'t*': the query time (must be >= t0*) (int)
+    
+    queryList = []
+    
+    query1 = dict()
+    query1['ruleNo'] = 2
+    query1['branch'] = '2.0.2'
+    query1['t0*'] = 0
+    query1['t*'] = 3
+    queryList.append(query1)
+    
+    for query in queryList:
+        ruleNo = query['ruleNo']
+        branchName = query['branch']
+        branchType = rule_dicts[ruleNo][branchName]['type']
+        children = rule_dicts[ruleNo][branchName]['children']
+        
+        # Send to appropriate module to find taus
+        
+        
         
 
 if __name__ == '__main__':
