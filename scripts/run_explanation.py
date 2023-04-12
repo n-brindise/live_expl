@@ -26,60 +26,7 @@ def load_scenario_data(**data_loc):
     with open(path, "r") as f:
         data = json.load(f)
         
-    return data
-
-
-def send_to_module(formtype, trace, onTimes, offTimes):
-    module_name = formtype
-    
-    # onTimes and offTimes will always be structured as follows:
-    #   -One entry per argument of the formula to be checked.
-    #   -Each entry is a list of switch-on-times for that argument (branch)
-    #       (Reminder: a time being "on" correponds to a t_0 for which the trace 
-    #        pi^{t_0...} satisfies the formula)
-    
-    # e.g. example for formula phi1 OR phi2 OR phi3:
-    # ontimesExample = [[0, 5, 7], 
-    #                   [],  # Entries may be empty if formula is never satisfied!
-    #                   [6]]
-    
-    # e.g. example for formula F phi1:    
-    # ontimesExample2 = [[6, 11]]
-    
-    
-    # Modules should return the following:
-    #   (1) onTimes and offTimes
-    #   (2) the four tau timesets
-    #   (3) the timeset of interest tau*
-    
-    if module_name == 'X':
-        return mods.nextX(onTimes, offTimes, trace)
-    elif module_name == 'F':
-        return mods.futureF(onTimes, offTimes, trace)
-    elif module_name == 'G':
-        return mods.alwaysG(onTimes, offTimes, trace)
-    elif module_name == 'U':
-        return mods.untilU(onTimes, offTimes, trace)
-    elif module_name == 'W':
-        return mods.weakuntilW(onTimes, offTimes, trace)
-    elif module_name == 'M':
-        return mods.strongreleaseM(onTimes, offTimes, trace)
-    elif module_name == 'R':
-        return mods.releaseR(onTimes, offTimes, trace)
-    elif module_name == 'AP':
-        return mods.atomprepAP(onTimes, offTimes, trace)
-    elif module_name == 'or':
-        return mods.orMod(onTimes, offTimes, trace)
-    elif module_name == 'and':
-        return mods.andMod(onTimes, offTimes, trace)
-    elif module_name == 'impl':
-        return mods.impl(onTimes, offTimes, trace)
-    elif module_name == 'not':
-        return mods.negMod(onTimes, offTimes, trace)
-    else: 
-        print('Invalid LTL formula in tree.')
-        return list()
-        
+    return data        
 
 def run_explanation(**expl_config):
     # load data
@@ -99,8 +46,8 @@ def run_explanation(**expl_config):
             formula_trees.append(pt.parse_tree(formula))
             
     num_rules = len(formula_trees)
-    print('numrules: ', num_rules)
-    print(formula_trees)
+    #print('numrules: ', num_rules)
+    #print(formula_trees)
     
     #########################################################################
     # Timeset Construction (Structure from which to extract expls)
@@ -162,8 +109,8 @@ def run_explanation(**expl_config):
         rule_dicts, leaf_list_tree, leaf_atoms = mineTree(tree, branchNo, rule_dicts, trace_len, list(), list(), '')
         full_leaf_list.append(leaf_list_tree)
         full_leaf_atoms.append(leaf_atoms)
-    print('full_leaf_list: ', full_leaf_list)
-    print('full_leaf_atoms: ', full_leaf_atoms)
+    #print('full_leaf_list: ', full_leaf_list)
+    #print('full_leaf_atoms: ', full_leaf_atoms)
     # We now have a list of all the leaves. 
     # We can easily go through each of them and assign intervals. 
     # To do this, we can first create entries for every \alpha\in AP and only populate the ones needed
@@ -192,28 +139,10 @@ def run_explanation(**expl_config):
     t0sForTrue = np.zeros(shape=(num_props, trace_len))
     
     for timestep in range(0, trace_len):
-        # Default values for prop off:
-        """         tau_a = np.zeros(trace_len - timestep)
-        tau_s = np.zeros(trace_len - timestep)
-        tau_i = np.zeros(trace_len - timestep)
-        tau_v = np.ones(trace_len - timestep)  """
-        
         # If prop on:
         for prop in trace[timestep]:
             propidx = propnumlabels[prop]
             t0sForTrue[propidx][timestep] = 1
-            
-            """             tau_a[0] = 1
-            tau_s[0] = 1
-            tau_v = np.zeros(trace_len - timestep)
-            
-            if not timestep == trace_len - 1:
-                tau_i[1:None] = np.ones(trace_len - (timestep+1))
-
-            rule_dicts[rule_no][branchNo]['tau_a'][timestep]= tau_a
-            rule_dicts[rule_no][branchNo]['tau_s'][timestep]= tau_s
-            rule_dicts[rule_no][branchNo]['tau_i'][timestep]= tau_i
-            rule_dicts[rule_no][branchNo]['tau_v'][timestep]= tau_v """
                     
     #print('t0sForTrue: ', t0sForTrue)
     # We now will build up from the leaves in the trees to the top level, populating \tau as we go
@@ -242,7 +171,7 @@ def run_explanation(**expl_config):
                 return rule_dicts
             else:
                 argt0Times.append(rule_dicts[tidx][child]['t0sForTrue'])
-                print('Branch evaluated: ', branch)
+                #print('Branch evaluated: ', branch)
                 
         branch_type = rule_dicts[tidx][branch]['type']
         
@@ -278,11 +207,6 @@ def run_explanation(**expl_config):
 
         rule_dicts[tidx][branch]['t0sForTrue'] = t0sForTrue
         rule_dicts[tidx][branch]['instantiated?'] = True
-        
-        """         rule_dicts[rule_no][branchNo]['tau_a'] = ta
-        rule_dicts[rule_no][branchNo]['tau_s'] = ts
-        rule_dicts[rule_no][branchNo]['tau_i'] = ti
-        rule_dicts[rule_no][branchNo]['tau_v'] = tv """
         
         nextBranchUp = rule_dicts[tidx][branch]['parent']
         
@@ -326,20 +250,78 @@ def run_explanation(**expl_config):
     
     query1 = dict()
     query1['ruleNo'] = 2
-    query1['branch'] = '2.0.2'
+    query1['branch'] = '2.0.1'
+    query1['t0*'] = 3
+    query1['t*'] = 3
+    queryList.append(query1)
+    
+    query1 = dict()
+    query1['ruleNo'] = 2
+    query1['branch'] = '2.0.1'
+    query1['t0*'] = 3
+    query1['t*'] = 4
+    queryList.append(query1)
+    
+    query1 = dict()
+    query1['ruleNo'] = 2
+    query1['branch'] = '2.0.1'
     query1['t0*'] = 0
     query1['t*'] = 3
     queryList.append(query1)
     
     for query in queryList:
         ruleNo = query['ruleNo']
-        branchName = query['branch']
-        branchType = rule_dicts[ruleNo][branchName]['type']
-        children = rule_dicts[ruleNo][branchName]['children']
+        branch = query['branch']
+        branchType = rule_dicts[ruleNo][branch]['type']
         
-        # Send to appropriate module to find taus
+        # Bad query handling
+        if query['t*'] < 0 or query['t*'] >= len(rule_dicts[0]['0']['t0sForTrue']):
+            print('Error: Query time t* not in range.')
+            return list()
+        if query['t0*'] < 0 or query['t0*'] >= len(rule_dicts[0]['0']['t0sForTrue']):
+            print('Error: Query initial time t0* not in range.')
+            return list()
         
+        module_name = branchType
+        #print('module name: ', module_name)
+        # Send to appropriate module
+        if module_name == 'X':
+            expl_output = mods.nextXquery(query, rule_dicts)
+        elif module_name == 'F':
+            expl_output = mods.futureFquery(query, rule_dicts)
+        elif module_name == 'G':
+            expl_output = mods.alwaysGquery(query, rule_dicts)
+        elif module_name == 'neg':
+            expl_output = mods.negModquery(query, trace)     
+        elif module_name == 'U':
+            expl_output = mods.untilUquery(query, rule_dicts)
+        elif module_name == 'W':
+            expl_output = mods.weakuntilWquery(query, rule_dicts)
+        elif module_name == 'M':
+            expl_output = mods.strongreleaseMquery(query, rule_dicts)
+        elif module_name == 'R':
+            expl_output = mods.releaseRquery(query, rule_dicts)
+        elif module_name == 'or':
+            expl_output = mods.orModquery(query, rule_dicts)
+        elif module_name == 'and':
+            expl_output = mods.andModquery(query, rule_dicts)
+        elif module_name == '->':
+            expl_output = mods.implquery(query, rule_dicts)
+        elif module_name == 'AP':
+            expl_output = mods.APquery(query, rule_dicts)
+
+        else: 
+            print('Invalid LTL formula in tree.')
+            return list()      
         
+        t0_query = query['t0*']
+        rule_dicts[ruleNo][branch]['tau_a'][t0_query] = expl_output['tau_a']
+        rule_dicts[ruleNo][branch]['tau_s'][t0_query] = expl_output['tau_s']
+        rule_dicts[ruleNo][branch]['tau_i'][t0_query] = expl_output['tau_i']
+        rule_dicts[ruleNo][branch]['tau_v'][t0_query] = expl_output['tau_v'] 
+        
+        explanation_text = expl_output['t*_status']
+        print(explanation_text)
         
 
 if __name__ == '__main__':
