@@ -686,13 +686,13 @@ def orModquery(query, rule_dicts):
         tau_v = rule_dicts[ruleNo][branch]['tau_v'][t0_star]
         status = evaluateTStar(t_star-t0_star, tau_a, tau_s, tau_i, tau_v)
     else: 
+        trace_len = len(rule_dicts[ruleNo][branch]['t0sForTrue'])
         tau_a = np.zeros(trace_len - t0_star)
         tau_s = np.zeros(trace_len - t0_star)
         tau_i = np.ones(trace_len - t0_star)
         tau_v = np.zeros(trace_len - t0_star)
         disjunctTrue = False
         
-        trace_len = len(rule_dicts[ruleNo][branch]['t0sForTrue'])
         children = rule_dicts[ruleNo][branch]['children']
         
         for argidx, arg in enumerate(children):
@@ -741,6 +741,7 @@ def andModquery(query, rule_dicts):
         tau_v = rule_dicts[ruleNo][branch]['tau_v'][t0_star]
         status = evaluateTStar(t_star-t0_star, tau_a, tau_s, tau_i, tau_v)
     else: 
+        trace_len = len(rule_dicts[ruleNo][branch]['t0sForTrue'])
         tau_a = np.zeros(trace_len - t0_star)
         tau_s = np.zeros(trace_len - t0_star)
         tau_i = np.ones(trace_len - t0_star)
@@ -750,7 +751,7 @@ def andModquery(query, rule_dicts):
         tau_s[0] = 1
         tau_i[0] = 0
         
-        trace_len = len(rule_dicts[ruleNo][branch]['t0sForTrue'])
+        
         children = rule_dicts[ruleNo][branch]['children']
         
         for argidx, arg in enumerate(children):
@@ -796,13 +797,12 @@ def negModquery(query, rule_dicts):
         tau_v = rule_dicts[ruleNo][branch]['tau_v'][t0_star]
         status = evaluateTStar(t_star-t0_star, tau_a, tau_s, tau_i, tau_v)
     else: 
-
+        trace_len = len(rule_dicts[ruleNo][branch]['t0sForTrue']) 
         tau_a = np.zeros(trace_len - t0_star)
         tau_s = np.zeros(trace_len - t0_star)
         tau_i = np.ones(trace_len - t0_star)
         tau_v = np.zeros(trace_len - t0_star)
         
-        trace_len = len(rule_dicts[ruleNo][branch]['t0sForTrue'])      
         arg1 = rule_dicts[ruleNo][branch]['children'][0]        
         
         t0sArg1 = rule_dicts[ruleNo][arg1]['t0sForTrue'] 
@@ -847,13 +847,12 @@ def implquery(query, rule_dicts):
         tau_v = rule_dicts[ruleNo][branch]['tau_v'][t0_star]
         status = evaluateTStar(t_star-t0_star, tau_a, tau_s, tau_i, tau_v)
     else: 
-
+        trace_len = len(rule_dicts[ruleNo][branch]['t0sForTrue'])
         tau_a = np.zeros(trace_len - t0_star)
         tau_s = np.zeros(trace_len - t0_star)
         tau_i = np.ones(trace_len - t0_star)
         tau_v = np.zeros(trace_len - t0_star)
-        
-        trace_len = len(rule_dicts[ruleNo][branch]['t0sForTrue'])      
+              
         arg1 = rule_dicts[ruleNo][branch]['children'][0]        
         arg2 = rule_dicts[ruleNo][branch]['children'][1]
         
@@ -901,12 +900,11 @@ def APquery(query, rule_dicts):
         tau_v = rule_dicts[ruleNo][branch]['tau_v'][t0_star]
         status = evaluateTStar(t_star-t0_star, tau_a, tau_s, tau_i, tau_v)
     else: 
+        trace_len = len(rule_dicts[ruleNo][branch]['t0sForTrue']) 
         tau_a = np.zeros(trace_len - t0_star)
         tau_s = np.zeros(trace_len - t0_star)
         tau_i = np.ones(trace_len - t0_star)
-        tau_v = np.zeros(trace_len - t0_star)
-        
-        trace_len = len(rule_dicts[ruleNo][branch]['t0sForTrue'])      
+        tau_v = np.zeros(trace_len - t0_star)     
         
         t0s = rule_dicts[ruleNo][branch]['t0sForTrue'] 
         

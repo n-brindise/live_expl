@@ -33,7 +33,10 @@ def run_explanation(**expl_config):
     scen_data = load_scenario_data(**data_loc)
 
     formula_trees = scen_data['formula_trees']
-    formula_strs = scen_data['formula_strs']
+    if 'formula_strs' in scen_data:
+        formula_strs = scen_data['formula_strs']
+    else: 
+        formula_strs = []
     
     trace = scen_data['trace']
     vocab = scen_data['vocab']
@@ -250,23 +253,23 @@ def run_explanation(**expl_config):
     
     query1 = dict()
     query1['ruleNo'] = 2
-    query1['branch'] = '2.0.1'
-    query1['t0*'] = 3
-    query1['t*'] = 3
-    queryList.append(query1)
-    
-    query1 = dict()
-    query1['ruleNo'] = 2
-    query1['branch'] = '2.0.1'
-    query1['t0*'] = 3
-    query1['t*'] = 4
-    queryList.append(query1)
-    
-    query1 = dict()
-    query1['ruleNo'] = 2
-    query1['branch'] = '2.0.1'
+    query1['branch'] = '2'
     query1['t0*'] = 0
-    query1['t*'] = 3
+    query1['t*'] = 0
+    queryList.append(query1)
+    
+    query1 = dict()
+    query1['ruleNo'] = 3
+    query1['branch'] = '3.0'
+    query1['t0*'] = 0
+    query1['t*'] = 0
+    queryList.append(query1)
+    
+    query1 = dict()
+    query1['ruleNo'] = 3
+    query1['branch'] = '3.0.0'
+    query1['t0*'] = 0
+    query1['t*'] = 0
     queryList.append(query1)
     
     for query in queryList:
@@ -326,9 +329,14 @@ def run_explanation(**expl_config):
 
 if __name__ == '__main__':
     
-    data_loc = {
+    '''data_loc = {
         "base_path" : './data/trace_data',
         "filename" : 'trace1.json'
+        }'''
+    
+    data_loc = {
+        "base_path" : './data/trace_data',
+        "filename" : 'trace_no1_mc.json'
         }
     
     # Expl types: 'manual', 'custom'
