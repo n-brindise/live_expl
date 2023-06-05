@@ -210,11 +210,11 @@ def impl(t0times, trace):
 ###############################################################################
 
 def evaluateTStar(t_star, tau_a, tau_s, tau_i, tau_v):
-    print('t_star: ', t_star)
-    print('tau_a: ', tau_a)
-    print('tau_s: ', tau_s)
-    print('tau_i: ', tau_i)
-    print('tau_v: ', tau_v)
+    #print('t_star: ', t_star)
+    #print('tau_a: ', tau_a)
+    #print('tau_s: ', tau_s)
+    #print('tau_i: ', tau_i)
+    #print('tau_v: ', tau_v)
     if tau_s[t_star] == 1:
         return 'satisfied'
     elif tau_a[t_star] == 1:
@@ -287,6 +287,12 @@ def futureFquery(query, rule_dicts):
     branch = query['branch'] 
     t0_star = query['t0*'] 
     t_star = query['t*'] 
+    
+    #print('testing: ')
+    
+    #print(rule_dicts[ruleNo])
+    #print(rule_dicts[ruleNo][branch])
+    #print(rule_dicts[ruleNo][branch]['tau_a'])
     
     # Check if we already have these tau intervals stored.
     # If so, just evaluate for t* and return.
@@ -787,7 +793,11 @@ def negModquery(query, rule_dicts):
     branch = query['branch'] 
     t0_star = query['t0*'] 
     t_star = query['t*'] 
+    #print('testing: ')
     
+    #print(rule_dicts[ruleNo])
+    #print(rule_dicts[ruleNo][branch])
+    #print(rule_dicts[ruleNo][branch]['tau_a'])
     # Check if we already have these tau intervals stored.
     # If so, just evaluate for t* and return.
     if len(rule_dicts[ruleNo][branch]['tau_a'][t0_star])>0:

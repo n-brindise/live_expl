@@ -7,8 +7,6 @@ for i in range(5):
     if not (Path.cwd()/"modules").exists(): os.chdir(Path.cwd().parent.as_posix())
     else: sys.path.append(Path.cwd().as_posix())
 
-
-from pathlib import Path
 import json
 import numpy as np
 import matplotlib.pyplot as plt
@@ -255,21 +253,42 @@ def run_explanation(**expl_config):
     query1['ruleNo'] = 2
     query1['branch'] = '2'
     query1['t0*'] = 0
-    query1['t*'] = 0
+    query1['t*'] = 10
+    queryList.append(query1)
+    
+    query1 = dict()
+    query1['ruleNo'] = 2
+    query1['branch'] = '2'
+    query1['t0*'] = 0
+    query1['t*'] = 39
     queryList.append(query1)
     
     query1 = dict()
     query1['ruleNo'] = 3
     query1['branch'] = '3.0'
     query1['t0*'] = 0
-    query1['t*'] = 0
+    query1['t*'] = 10
+    queryList.append(query1)
+    
+    query1 = dict()
+    query1['ruleNo'] = 3
+    query1['branch'] = '3.0'
+    query1['t0*'] = 0
+    query1['t*'] = 17
+    queryList.append(query1)
+    
+    query1 = dict()
+    query1['ruleNo'] = 3
+    query1['branch'] = '3.0'
+    query1['t0*'] = 0
+    query1['t*'] = 35
     queryList.append(query1)
     
     query1 = dict()
     query1['ruleNo'] = 3
     query1['branch'] = '3.0.0'
-    query1['t0*'] = 0
-    query1['t*'] = 0
+    query1['t0*'] = 35
+    query1['t*'] = 35
     queryList.append(query1)
     
     for query in queryList:
@@ -295,7 +314,7 @@ def run_explanation(**expl_config):
         elif module_name == 'G':
             expl_output = mods.alwaysGquery(query, rule_dicts)
         elif module_name == 'neg':
-            expl_output = mods.negModquery(query, trace)     
+            expl_output = mods.negModquery(query, rule_dicts)     
         elif module_name == 'U':
             expl_output = mods.untilUquery(query, rule_dicts)
         elif module_name == 'W':
