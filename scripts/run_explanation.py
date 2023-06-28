@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 
 from modules import ltl_modules as mods
 from modules import parse_trees as pt
+from modules import optimal_expl as oe
 
 def load_scenario_data(**data_loc):
     
@@ -26,29 +27,44 @@ def load_scenario_data(**data_loc):
         
     return data        
 
-def run_explanation(**expl_config):
+def run_explanation(**config):
     # load data
-    scen_data = load_scenario_data(**data_loc)
+    trace_data = load_scenario_data(**trace_data_loc)
+    expl_data = load_scenario_data(**expl_specs)
 
-    formula_trees = scen_data['formula_trees']
-    if 'formula_strs' in scen_data:
-        formula_strs = scen_data['formula_strs']
+    # LTL Formula handling (tree parsing if necessary)
+    formula_trees = trace_data['formula_trees']
+    if 'formula_strs' in trace_data:
+        formula_strs = trace_data['formula_strs']
     else: 
         formula_strs = []
-    
-    trace = scen_data['trace']
-    vocab = scen_data['vocab']
+    trace = trace_data['trace']
+    vocab = trace_data['vocab']
     
     # Check if formulas are already expressed as trees:
     if len(formula_trees) == 0:
         formula_trees = []
-        # Not yet functional
+        
         for formula in formula_strs:
             formula_trees.append(pt.parse_tree(formula))
             
     num_rules = len(formula_trees)
-    #print('numrules: ', num_rules)
-    #print(formula_trees)
+    
+    # Explanation preprocessing
+    optimal_expl = False
+    manual_expl = False
+    
+    if 'manual' in expl_data['expl_type']:
+        query_list = expl_data['manual_query_list']
+        manual_expl = True
+        print('Manual expl requested')
+    if 'optimal' in  expl_data['expl_type']:
+        print('Optimal expl requested')
+        optimal_expl = True
+        query_times = expl_data['query_times']
+        explanation_depth = expl_data['explanation_depth']
+    
+    #print('Expl type not yet supported, sorry!')
     
     #########################################################################
     # Timeset Construction (Structure from which to extract expls)
@@ -62,7 +78,6 @@ def run_explanation(**expl_config):
         
         # Find/store branch type 
         branchType = branch[0]
-        #print('branchType: ', branchType)
         rule_dicts[rule_no][branchNo]['type'] = branchType
         # Create empty timesets
         rule_dicts[rule_no][branchNo]['tau_a'] = [[]]*trace_len
@@ -81,9 +96,7 @@ def run_explanation(**expl_config):
         if branchType == 'AP':
             leaf_list.append(branchNo)
             atom = branch[1][0]
-            #print('atom: ', atom)
             leaf_atoms.append(atom)
-            #print('branchNo: ', branchNo)
             return rule_dicts, leaf_list, leaf_atoms
         else:
             #   Num of arguments:
@@ -97,12 +110,14 @@ def run_explanation(**expl_config):
                 rule_dicts, leaf_list, leaf_atoms = mineTree(branch_b, branchNo_b, rule_dicts, trace_len, leaf_list, leaf_atoms, branchNo)
             return rule_dicts, leaf_list, leaf_atoms
       
+    # Empty tree production
     rule_dicts = [None]*num_rules
     trace_len = len(trace)
     
     full_leaf_list = list()
     full_leaf_atoms = list()
     
+    # Construct tree for each rule, one at a time
     for rule_no, tree in enumerate(formula_trees):
         rule_dicts[rule_no] = dict()
         
@@ -110,29 +125,28 @@ def run_explanation(**expl_config):
         rule_dicts, leaf_list_tree, leaf_atoms = mineTree(tree, branchNo, rule_dicts, trace_len, list(), list(), '')
         full_leaf_list.append(leaf_list_tree)
         full_leaf_atoms.append(leaf_atoms)
-    #print('full_leaf_list: ', full_leaf_list)
-    #print('full_leaf_atoms: ', full_leaf_atoms)
+
     # We now have a list of all the leaves. 
     # We can easily go through each of them and assign intervals. 
     # To do this, we can first create entries for every \alpha\in AP and only populate the ones needed
     #   by the leaves (and avoid re-calculating any). 
     # Alternately, the "dumb" option is to just make the intervals for all \alpha\in AP from the start.
     # 
-    # Either way, we can easily populate these boolean intervals. The question is what to do after that.
-    # Each leaf has an associated branch number. We can:
-    #   Move up the branch (by truncating the last .x in the branch number). 
-    #   Once we get there, we check if the branch is fully "informed". If yes, 
+    # Either way, we can easily populate these boolean intervals.
+    # Then, for the rest of the tree (branches), we can:
+    #   Move up the branch to parent node (by truncating the last .x in the current node number). 
+    #   Once we get there, we check if all the node's children are already instantiated. If yes, 
     #       -call appropriate module to get current branch's intervals
     #       -move up again (continue)
     #   If not,
     #       -continue to next item in leaf list
-    
-    # For now, we'll do this the dumb way, and produce info for all alpha in AP.
-    
-    # Find on-times for boolean propositions in trace
+
+    # Start with the leaves:
+    # Find all times on trace when each boolean prop is true.
     num_props = len(vocab)
     propnumlabels = dict()
     
+    # Assign a numerical index to each boolean proposition
     for idx, prop in enumerate(vocab):
         propnumlabels[prop] = idx
     
@@ -145,15 +159,11 @@ def run_explanation(**expl_config):
             propidx = propnumlabels[prop]
             t0sForTrue[propidx][timestep] = 1
                     
-    #print('t0sForTrue: ', t0sForTrue)
     # We now will build up from the leaves in the trees to the top level, populating \tau as we go
-            
     for tidx, tree in enumerate(full_leaf_list):
         for lidx, leaf in enumerate(tree):
-            #print(f'tree {tidx} leaf: {leaf}')
             # Find prop number corresponding to prop name for current leaf
             propName = full_leaf_atoms[tidx][lidx]
-            #print('propName: ', propName)
             propNo = propnumlabels[propName]
             
             # Store on/off interval data for leaves
@@ -163,7 +173,6 @@ def run_explanation(**expl_config):
     # Leaves are now finished. Time to build up the rest of the tree, incl using modules.
     
     def onTimesBranch(tidx, branch, rule_dicts, trace):
-        
         argt0Times = []
         for child in rule_dicts[tidx][branch]['children']:
             # Check whether any children are still empty...
@@ -216,6 +225,7 @@ def run_explanation(**expl_config):
         
         return rule_dicts
     
+    # Iterate through each leaf in each rule tree
     for tidx, tree in enumerate(full_leaf_list):
         for lidx, leaf in enumerate(tree):
             
@@ -238,7 +248,6 @@ def run_explanation(**expl_config):
     #   1) pick a branch of a rule
     #   2) select a t*_0 and t*
     #   3) receive status information
-    # We still need to implement timesets of interest (and timesets in general).
     
     # Query format: list of dictionaries.
     # Each entry is a dict() containing:
@@ -247,51 +256,31 @@ def run_explanation(**expl_config):
     #   -'t0*': the query initial time (int)
     #   -'t*': the query time (must be >= t0*) (int)
     
-    queryList = []
+    optimal_expls_list = list()
+    manual_expls_list = list()
     
-    query1 = dict()
-    query1['ruleNo'] = 2
-    query1['branch'] = '2'
-    query1['t0*'] = 0
-    query1['t*'] = 10
-    queryList.append(query1)
+    ######################################################################
+    # Optimal Explanation given individual t*
+    ######################################################################
     
-    query1 = dict()
-    query1['ruleNo'] = 2
-    query1['branch'] = '2'
-    query1['t0*'] = 0
-    query1['t*'] = 39
-    queryList.append(query1)
+    if optimal_expl:
+        # We will (at least for now) need to populate ALL status intervals for a given t*, 
+        # not just those for individual queries.
+        for t_star in query_times:
+            optimal_expls_list.append(oe.get_optimal_expl(t_star, rule_dicts, explanation_depth))
+                   
+        
+        pass
     
-    query1 = dict()
-    query1['ruleNo'] = 3
-    query1['branch'] = '3.0'
-    query1['t0*'] = 0
-    query1['t*'] = 10
-    queryList.append(query1)
+    #####################################################################
+    # Explanation given specific t*,t*_0 pairs and rule arg (from json)
+    #####################################################################
+    print('query list: ', query_list)
+    for rule in rule_dicts:
+        print('rule branches:', rule.keys())
+
     
-    query1 = dict()
-    query1['ruleNo'] = 3
-    query1['branch'] = '3.0'
-    query1['t0*'] = 0
-    query1['t*'] = 17
-    queryList.append(query1)
-    
-    query1 = dict()
-    query1['ruleNo'] = 3
-    query1['branch'] = '3.0'
-    query1['t0*'] = 0
-    query1['t*'] = 35
-    queryList.append(query1)
-    
-    query1 = dict()
-    query1['ruleNo'] = 3
-    query1['branch'] = '3.0.0'
-    query1['t0*'] = 35
-    query1['t*'] = 35
-    queryList.append(query1)
-    
-    for query in queryList:
+    for query in query_list:
         ruleNo = query['ruleNo']
         branch = query['branch']
         branchType = rule_dicts[ruleNo][branch]['type']
@@ -305,67 +294,29 @@ def run_explanation(**expl_config):
             return list()
         
         module_name = branchType
-        #print('module name: ', module_name)
-        # Send to appropriate module
-        if module_name == 'X':
-            expl_output = mods.nextXquery(query, rule_dicts)
-        elif module_name == 'F':
-            expl_output = mods.futureFquery(query, rule_dicts)
-        elif module_name == 'G':
-            expl_output = mods.alwaysGquery(query, rule_dicts)
-        elif module_name == 'neg':
-            expl_output = mods.negModquery(query, rule_dicts)     
-        elif module_name == 'U':
-            expl_output = mods.untilUquery(query, rule_dicts)
-        elif module_name == 'W':
-            expl_output = mods.weakuntilWquery(query, rule_dicts)
-        elif module_name == 'M':
-            expl_output = mods.strongreleaseMquery(query, rule_dicts)
-        elif module_name == 'R':
-            expl_output = mods.releaseRquery(query, rule_dicts)
-        elif module_name == 'or':
-            expl_output = mods.orModquery(query, rule_dicts)
-        elif module_name == 'and':
-            expl_output = mods.andModquery(query, rule_dicts)
-        elif module_name == '->':
-            expl_output = mods.implquery(query, rule_dicts)
-        elif module_name == 'AP':
-            expl_output = mods.APquery(query, rule_dicts)
-
-        else: 
-            print('Invalid LTL formula in tree.')
-            return list()      
         
-        t0_query = query['t0*']
-        rule_dicts[ruleNo][branch]['tau_a'][t0_query] = expl_output['tau_a']
-        rule_dicts[ruleNo][branch]['tau_s'][t0_query] = expl_output['tau_s']
-        rule_dicts[ruleNo][branch]['tau_i'][t0_query] = expl_output['tau_i']
-        rule_dicts[ruleNo][branch]['tau_v'][t0_query] = expl_output['tau_v'] 
+        rule_dicts, expl_output = oe.populate_taus(rule_dicts, module_name, query)
         
-        explanation_text = expl_output['t*_status']
-        print(explanation_text)
+        manual_expls_list.append(expl_output['t*_status'])
+    return manual_expls_list, optimal_expls_list
         
 
 if __name__ == '__main__':
     
-    '''data_loc = {
-        "base_path" : './data/trace_data',
-        "filename" : 'trace1.json'
-        }'''
+    experiment_name = 'manual_play'
     
-    data_loc = {
-        "base_path" : './data/trace_data',
-        "filename" : 'trace_no1_mc.json'
+    trace_data_loc = {
+        "base_path" : f'./data/trace_data/{experiment_name}',
+        "filename" : 'trace0.json'
         }
     
-    # Expl types: 'manual', 'custom'
+    # Expl types: 'manual', 'interactive' (not yet supported), 'optimal'
     expl_specs = {
-        "expl_type" : 'manual',
-        "base_path" : './data/expl_configs',
+        "base_path" : f'./data/expl_configs/{experiment_name}',
         "filename" : 'explconfig1.json'
     }
         
-    expl_config = dict()
-    expl_config['data_loc'] = data_loc
-    expl_config['expl_specs'] = expl_specs
-    print(run_explanation(**expl_config))
+    config = dict()
+    config['trace_data_loc'] = trace_data_loc
+    config['expl_specs'] = expl_specs
+    print(run_explanation(**config))

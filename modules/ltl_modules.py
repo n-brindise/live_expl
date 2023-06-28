@@ -91,7 +91,7 @@ def weakuntilW(t0times, trace):
         if t0timesArg2[time] == 1:
             arg2OnIndices.append(time)
     
-    print('arg2OnIndices: ', arg2OnIndices)
+    #print('arg2OnIndices: ', arg2OnIndices)
     for time in range(0,len(trace)):
         arg2inRange = arg2OnIndices[time:None]
         
@@ -210,11 +210,7 @@ def impl(t0times, trace):
 ###############################################################################
 
 def evaluateTStar(t_star, tau_a, tau_s, tau_i, tau_v):
-    #print('t_star: ', t_star)
-    #print('tau_a: ', tau_a)
-    #print('tau_s: ', tau_s)
-    #print('tau_i: ', tau_i)
-    #print('tau_v: ', tau_v)
+
     if tau_s[t_star] == 1:
         return 'satisfied'
     elif tau_a[t_star] == 1:
