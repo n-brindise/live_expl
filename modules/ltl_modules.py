@@ -869,10 +869,14 @@ def implquery(query, rule_dicts):
         if t0sArg1[t0_star] == 1 and t0sArg2[t0_star] == 0:
             tau_v = np.ones(trace_len - t0_star)
             tau_i = np.zeros(trace_len - t0_star)
-        else:
+        elif t0sArg1[t0_star] == 1 and t0sArg2[t0_star] == 1:
             tau_a[0] = 1
             tau_s[0] = 1
-            tau_i[0] = 0
+            tau_i[0] = 0            
+        else:
+            tau_a[0] = 0
+            tau_s[0] = 0
+            tau_i[0] = 1
                                        
         # Store results
         status = evaluateTStar(t_star-t0_star, tau_a, tau_s, tau_i, tau_v)

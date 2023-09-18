@@ -266,10 +266,10 @@ def parse_tree(formula_str):
     operator_strength = index_dict['operator_strength']
     empty_tree_nodes = index_dict['empty_tree_nodes']
     #paren_map, formula = map_parentheses(formula_clean)
-    print('Tests: ')
+    #print('Tests: ')
     #print('formula length (indexed): ', len(formula_indexed))
-    print('formula string: ', formula_str)
-    print('formula_indexed: ', formula_indexed)
+    #print('formula string: ', formula_str)
+    #print('formula_indexed: ', formula_indexed)
     #print('paren_map: ', paren_map)
     #print('operator_strength: ', operator_strength)
     #print('empty tree nodes: ', empty_tree_nodes)

@@ -20,7 +20,7 @@ def load_scenario_data(**data_loc):
     base_path = data_loc['base_path']
     filename = data_loc['filename']
     path = Path(base_path,filename)
-    print('path is: ', path)
+    #print('path is: ', path)
     
     with open(path, "r") as f:
         data = json.load(f)
@@ -28,7 +28,11 @@ def load_scenario_data(**data_loc):
     return data        
 
 def run_explanation(**config):
-    # load data
+    query_list = list()
+    data_for_plotting = config['data_for_plotting']
+    trace_data_loc = config['trace_data_loc']
+    expl_specs = config['expl_specs']
+    
     trace_data = load_scenario_data(**trace_data_loc)
     expl_data = load_scenario_data(**expl_specs)
 
@@ -54,11 +58,14 @@ def run_explanation(**config):
     optimal_expl = False
     manual_expl = False
     
-    if 'manual' in expl_data['expl_type']:
+    if data_for_plotting:
+        query_list = config['query_list_for_plotting']
+        #print('run expl: query list for plotting', query_list)
+    elif 'manual' in expl_data['expl_type']:
         query_list = expl_data['manual_query_list']
         manual_expl = True
         print('Manual expl requested')
-    if 'optimal' in  expl_data['expl_type']:
+    elif 'optimal' in  expl_data['expl_type']:
         print('Optimal expl requested')
         optimal_expl = True
         query_times = expl_data['query_times']
@@ -186,7 +193,7 @@ def run_explanation(**config):
         branch_type = rule_dicts[tidx][branch]['type']
         
         module_name = branch_type
-        print('module name: ', module_name)
+        #print('module name: ', module_name)
         # Send to appropriate module
         if module_name == 'X':
             t0sForTrue = mods.nextX(argt0Times, trace)
@@ -238,10 +245,10 @@ def run_explanation(**config):
     # Explanation Algorithm ("Activeness Assessment")
     #########################################################################
 
-    for tree in rule_dicts:
-        for branch in tree:
-            print(branch, ' (type ', tree[branch]['type'],'):')
-            print(tree[branch]['t0sForTrue'])
+    #for tree in rule_dicts:
+    #    for branch in tree:
+    #        print(branch, ' (type ', tree[branch]['type'],'):')
+    #        print(tree[branch]['t0sForTrue'])
             
     # Start thinking about support for query types here.
     # You will be able to...
@@ -275,14 +282,17 @@ def run_explanation(**config):
     #####################################################################
     # Explanation given specific t*,t*_0 pairs and rule arg (from json)
     #####################################################################
-    print('query list: ', query_list)
-    for rule in rule_dicts:
-        print('rule branches:', rule.keys())
+    plotting_data = dict()
+    
+    #print('query list: ', query_list)
+    #for rule in rule_dicts:
+    #    print('rule branches:', rule.keys())
 
     
     for query in query_list:
         ruleNo = query['ruleNo']
         branch = query['branch']
+        
         branchType = rule_dicts[ruleNo][branch]['type']
         
         # Bad query handling
@@ -295,10 +305,13 @@ def run_explanation(**config):
         
         module_name = branchType
         
+
         rule_dicts, expl_output = oe.populate_taus(rule_dicts, module_name, query)
         
         manual_expls_list.append(expl_output['t*_status'])
-    return manual_expls_list, optimal_expls_list
+        
+        plotting_data = rule_dicts
+    return manual_expls_list, optimal_expls_list, plotting_data
         
 
 if __name__ == '__main__':
@@ -319,4 +332,7 @@ if __name__ == '__main__':
     config = dict()
     config['trace_data_loc'] = trace_data_loc
     config['expl_specs'] = expl_specs
-    print(run_explanation(**config))
+    
+    config['data_for_plotting'] = False
+    config['query_list_for_plotting'] = list()
+    print(run_explanation(**config)[0])
