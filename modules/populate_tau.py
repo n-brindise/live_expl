@@ -9,7 +9,7 @@ for i in range(5):
 # %% #
 from pathlib import Path
 import numpy as np
-import scripts.run_explanation as run_expl
+import modules.run_explanation as run_expl
 import modules.ltl_modules as mods
 
 # Optimal Explanation: (Under Construction)
@@ -17,17 +17,17 @@ import modules.ltl_modules as mods
 def get_optimal_expl(t_star, rule_dicts, expl_depth):
     
     for ruleNo in rule_dicts:
-        for branch in rule_dicts[ruleNo]:
+        for node in rule_dicts[ruleNo]:
 
-            query_branch = dict()
-            query_branch['ruleNo'] = ruleNo
-            query_branch['branch'] = branch
-            query_branch['t*'] = t_star
+            query_node = dict()
+            query_node['ruleNo'] = ruleNo
+            query_node['node'] = node
+            query_node['t*'] = t_star
     
-            branchType = rule_dicts[ruleNo][branch]['type']
-            module_name = branchType
+            nodeType = rule_dicts[ruleNo][node]['type']
+            module_name = nodeType
             
-            rule_dicts, expl_output = populate_taus(rule_dicts, module_name, query_branch)
+            rule_dicts, expl_output = populate_taus(rule_dicts, module_name, query_node)
             
     # Now we'll have all the taus for t* populated in rule_dicts.
     # From here, we can analyze those taus and select/order the optimal t*_0s.
@@ -69,11 +69,11 @@ def populate_taus(rule_dicts, module_name, query):
     
     t0_query = query['t0*']
     ruleNo = query['ruleNo'] 
-    branch = query['branch'] 
-    rule_dicts[ruleNo][branch]['tau_a'][t0_query] = expl_output['tau_a']
-    rule_dicts[ruleNo][branch]['tau_s'][t0_query] = expl_output['tau_s']
-    rule_dicts[ruleNo][branch]['tau_i'][t0_query] = expl_output['tau_i']
-    rule_dicts[ruleNo][branch]['tau_v'][t0_query] = expl_output['tau_v'] 
+    node = query['node'] 
+    rule_dicts[ruleNo][node]['tau_a'][t0_query] = expl_output['tau_a']
+    rule_dicts[ruleNo][node]['tau_s'][t0_query] = expl_output['tau_s']
+    rule_dicts[ruleNo][node]['tau_i'][t0_query] = expl_output['tau_i']
+    rule_dicts[ruleNo][node]['tau_v'][t0_query] = expl_output['tau_v'] 
     
     return rule_dicts, expl_output
 

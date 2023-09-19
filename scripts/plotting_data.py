@@ -14,7 +14,7 @@ import pandas as pd
 
 import cmasher as cmr
 
-from scripts import run_explanation as re
+from modules import run_explanation as re
 
 # Script to produce desired data for plotting
 ##########################################################
@@ -34,7 +34,6 @@ path = Path(plot_config_path)
 with open(path, "r") as f:
     plot_config = json.load(f)
     
-
 base_path = f'data/trace_data/{experiment_name}/plotting_data_traces'
 file_output_path = f'data/results/plots/{experiment_name}'
 
@@ -57,15 +56,14 @@ if 'avg_sat_times_plots' in plot_types:
     
     avg_sat_times = np.zeros((len(rules), num_checkpoints))
     percent_satisfied_list = np.zeros((len(rules), num_checkpoints))
-    #failures = np.zeros((len(rules), num_checkpoints))
-    query_list = list()
     
     # Generate list of queries to make based on rules to be included
+    query_list = list()
     for rule_no in rules:
         query = dict()
         query['t0*'] = 0
         query['ruleNo'] = rule_no
-        query['branch'] = str(rule_no)
+        query['node'] = str(rule_no)
         query['t*'] = 0
         query_list.append(query)
     
@@ -76,14 +74,11 @@ if 'avg_sat_times_plots' in plot_types:
         path_to_folder = sorted_trace_folders[chk]
         
         trace_list = [p.as_posix() for p in Path(path_to_folder).glob("*")]
-        #print('trace list len: ', len(trace_list))
         
         for i in range(0,len(trace_list)):
             
             # Load individual traces
             trace_dir = trace_list[i]
-            #print("HERE!! ###########################")
-            #print('trace_dir: ', trace_dir)
             trace_path = Path(trace_dir)
             
             # pass query list to explainer for this trace            
@@ -92,19 +87,18 @@ if 'avg_sat_times_plots' in plot_types:
                 "filename" : ''
                 }
             
-            # Expl types: 'manual', 'interactive' (not yet supported), 'optimal'
+            # Expl mode set to 'default'. Allows us to input a query list
             expl_specs = {
-                "base_path" : f'./data/expl_configs/{experiment_name}',
-                "filename" : 'explconfig1.json'
+                "mode" : 'default',
+                "query_list" : query_list
             }
-                
+            
+            # Prepare config for function call
             config = dict()
             config['trace_data_loc'] = trace_data_loc
             config['expl_specs'] = expl_specs
-            config['data_for_plotting'] = True
-            config['query_list_for_plotting'] = query_list
             
-            _, _, plotting_data = re.run_explanation(**config)
+            _, plotting_data = re.run_explanation(**config)
             
             for rule_no in rules:
                 #print('rule_no is: ', rule_no)
@@ -125,15 +119,10 @@ if 'avg_sat_times_plots' in plot_types:
         for rule_no in rules:
             if failure_counter[str(rule_no)] < len(trace_list):
                 avg_sat_times[rule_no][chk] = avg_sat_time_chkpt[str(rule_no)] / (len(trace_list)-failure_counter[str(rule_no)])
-                #failures[rule_no][chk] = 1000000
             else:
                 # Record failures:
                 avg_sat_times[rule_no][chk] = -1
-                #failures[rule_no][chk] = timeout_step_count
-            percent_satisfied_list[rule_no][chk] = num_satisfied_chkpt[str(rule_no)]/len(trace_list) * 100
-            #print('rule number: ', rule_no, ' checkpoint: ', chk)
-        
-        #print(avg_sat_times)    
+            percent_satisfied_list[rule_no][chk] = num_satisfied_chkpt[str(rule_no)]/len(trace_list) * 100 
         
     ####################################################
     # Plot avg sat times
@@ -141,13 +130,7 @@ if 'avg_sat_times_plots' in plot_types:
     # Make list of dataframes:
     avg_sat_df_dict = dict()
     for rule_no in rules:
-        #checkpoint_numbers = range(1,61)
         rule_sat_times = avg_sat_times[rule_no]
-        #print('type of rule_sat_times: ', type(rule_sat_times))
-        #print('rule_sat_times: ', rule_sat_times)
-        #rule_sat_times = np.random.uniform(low=10, high = 40, size =(60,))
-        #print('type of rule_sat_times later: ', type(rule_sat_times))
-        #print('rule_sat_times: ', rule_sat_times)
 
         percent_satisfied = percent_satisfied_list[rule_no]
         #percent_satisfied = np.random.uniform(low=0, high = 100, size =(60,))
@@ -157,8 +140,7 @@ if 'avg_sat_times_plots' in plot_types:
             'percent_satisfied' : percent_satisfied
         })
         avg_sat_df_dict[rule_no] = avg_sat_df
-        #print('percent satisfied: ', percent_satisfied)
-    
+
     plot_shape_list = ['v', 'o', 's']
     legend_strings = list()
 
@@ -207,8 +189,6 @@ if 'avg_sat_times_plots' in plot_types:
         ax.get_xticklabels() + ax.get_yticklabels()):
         item.set_fontsize(16)
     
-    #box = ax.get_position()
-    #ax.set_position([box.x0, box.y0+4, box.width, box.height*0.8])
     plt.subplots_adjust(bottom=0.19)
     #plt.colorbar(mpl.cm.ScalarMappable(norm=norm,cmap=cmap), fraction=0.035, pad=0.04, ax=ax, orientation='horizontal', label='Some units')
     plt.colorbar(mpl.cm.ScalarMappable(cmap=cmap), fraction=0.018, ax=ax, orientation='vertical', label=r'proportion of traces satisfying $\varphi$')
@@ -237,23 +217,12 @@ if 'trigger_plots' in plot_types:
     trace_list = sorted([p.as_posix() for p in Path(trace_folder).glob("*")])
     num_traces = len(trace_list)
     
-    query_list = list()
     
     # Generate list of queries to make based on rules to be included
     # Here, we structure this for formulas of form G ( xxx -> xxxx)
     #   and find their trigger instances.
     #
     # We do this very inefficiently here.     
-
-    # This won't really matter; is overridden by plot_data_config
-    expl_specs = {
-        "base_path" : f'./data/expl_configs/{experiment_name}',
-        "filename" : 'explconfig1.json'
-    }
-    
-    config = dict()
-    config['data_for_plotting'] = True
-    config['expl_specs'] = expl_specs
     
     trigger_times = np.zeros((len(rules), num_traces))
     done_times = np.zeros((len(rules), num_traces))
@@ -268,14 +237,10 @@ if 'trigger_plots' in plot_types:
     percent_traces_violated = np.zeros(len(rules))
         
     for i in range(0,num_traces):
-        #print('trace number is now ', i)
-        trace_data_loc = {
-            "base_path" : trace_list[i],
-            "filename" : ''
-        }
-        config['trace_data_loc'] = trace_data_loc
-        path = trace_list[i]
-        with open(path, "r") as f:
+                
+        trace_dir = trace_list[i]
+        trace_path = Path(trace_dir)
+        with open(trace_path, "r") as f:
             this_trace = json.load(f)
         this_trace_len = len(this_trace['trace'])
         
@@ -286,34 +251,39 @@ if 'trigger_plots' in plot_types:
                 query = dict()
                 query['t0*'] = tstp
                 query['ruleNo'] = rule_no
-                query['branch'] = f'{rule_no}.0.0' # Want to find the (first) arg activation times
+                query['node'] = f'{rule_no}.0.0' # Want to find the (first) arg activation times
                 query['t*'] = tstp
                 query_list.append(query)
-        
-        config['query_list_for_plotting'] = query_list
-
-        #print('query_list: ', query_list)
-        #print('config query list: ', config['query_list_for_plotting'])
-        _, _, plotting_data = re.run_explanation(**config)
-        #print('first plotting data:')
-        #print(plotting_data)
             
+        # pass query list to explainer for this trace  
+        trace_data_loc = {
+            "base_path" : trace_list[i],
+            "filename" : ''
+        }
+        # Expl mode set to 'default'. Allows us to input a query list
+        expl_specs = {
+            "mode" : 'default',
+            "query_list" : query_list
+        }
+            
+        # Prepare config for function call
+        config = dict()
+        config['trace_data_loc'] = trace_data_loc
+        config['expl_specs'] = expl_specs
+        # Call explanation alg to get required diagnostic information
+        _, plotting_data = re.run_explanation(**config)
+
         for ridx, rule_no in enumerate(rules):
             trace_not_triggered = False
             
             for tstep in range(0, this_trace_len):
                 tau_v = plotting_data[rule_no][f'{rule_no}.0.0']['tau_v'][tstep]
-                #print('len of tau_a: ', len(tau_a))
-                #print('####tau_v (first arg): ', tau_v)
+
                 if not tau_v[0] == 1:
-                    # rule holds at this time (for the first time)
-                    #print(f'Rule {rule_no} true at time {tstep} (trace {i})')
                     trigger_times[ridx][i] = tstep
                     break
                 elif tstep == this_trace_len - 1: # reached end of trace without triggering
                     trace_not_triggered = True
-
-                    
                     
             if trace_not_triggered: 
                 total_traces_not_triggered[ridx] = total_traces_not_triggered[ridx] + 1
@@ -324,23 +294,25 @@ if 'trigger_plots' in plot_types:
                 # Now we have a trigger time for the rule (tstep).
                 # So we can check for satisfaction of its consequence (argument)
                 tt = tstep
-                #print('tt: ', tt)
                 query = dict()
                 query['t0*'] = tt
                 query['ruleNo'] = rule_no
-                query['branch'] = f'{rule_no}.0.1' # Want to find the (first) arg activation times
+                query['node'] = f'{rule_no}.0.1' # Want to find the (first) arg activation times
                 query['t*'] = tt
                 query_list_conseq = [query]
                 
-                config['query_list_for_plotting'] = query_list_conseq
-                _, _, plotting_data_conseq = re.run_explanation(**config)
+                # Update query list for next evaluation
+                expl_specs = {
+                    "mode" : 'default',
+                    "query_list" : query_list_conseq
+                }
+                config['expl_specs'] = expl_specs
+                _, plotting_data_conseq = re.run_explanation(**config)
                 
                 tau_s = plotting_data_conseq[rule_no][f'{rule_no}.0.1']['tau_s'][tt]
                 tau_i = plotting_data_conseq[rule_no][f'{rule_no}.0.1']['tau_i'][tt]
                 tau_v = plotting_data_conseq[rule_no][f'{rule_no}.0.1']['tau_v'][tt]
                 
-                #print('###################tau_s: ', tau_s)
-                #print('###################tau_v: ', tau_v)
                 for t_step in range(0, len(tau_s)):   
                     if tau_v[t_step] == 1:
                         # Formula violated.
@@ -355,21 +327,7 @@ if 'trigger_plots' in plot_types:
                     elif tau_s[t_step] == 1: # satisfied at this time
                         #print(f'Rule {rule_no} satisfied at time {tstep} (trace {i})')
                         done_times[ridx][i] = t_step + tt
-                        #print('sat time: ', t_step + tt)
-                        break            
-                
-        #for rule_no in rules:
-        #    if failure_counter[str(rule_no)] < len(trace_list):
-        #        avg_sat_times[rule_no][chk] = avg_sat_time_chkpt[str(rule_no)] / (len(trace_list)-failure_counter[str(rule_no)])
-        #        failures[rule_no][chk] = 1000000
-        #    else:
-        #        # Record failures:
-        #        avg_sat_times[rule_no][chk] = 1000000
-        #        failures[rule_no][chk] = timeout_step_count
-        #    #print('rule number: ', rule_no, ' checkpoint: ', chk)
-            
-        #print(trigger_times)
-        #print(done_times)    
+                        break              
     
     for ridx in range(0, len(rules)):
         percent_traces_not_triggered[ridx] = total_traces_not_triggered[ridx] / num_traces
@@ -391,8 +349,7 @@ if 'trigger_plots' in plot_types:
     plt.rcParams.update({
         "font.family": "sans-serif"
     })
-    
-    #mpl.rc("font", family="Times New Roman",weight='normal')
+
     plt.rcParams.update({'mathtext.default':  'regular' })
     
     ax.set_xticks(range(0, x_max, 5))
@@ -417,19 +374,13 @@ if 'trigger_plots' in plot_types:
         plot_nontriggered_times = not_triggered_traces[ridx]
         ax.scatter(x=trace_x, y=plot_nontriggered_times, marker=nontriggered_point, s=100, c='cornflowerblue')
         
-    #for rule_no in rules:
-    #    plot_trace_failures = trace_failures[rule_no]
-    #    ax.plot(trace_x, plot_trace_failures, 'rx', markersize=10, mew=3)
-        
+    
     ax.axis([0, x_max, 0, timeout_step_count+2])
     
     plt.title(plot_title)
     
     ax.legend(['triggered', 'done', r'$\varphi$ violated', r'$\varphi_0$ inactive'], title=r"$\varphi=\mathbf{G}($key$\rightarrow\mathbf{F}$ open_door)", labelspacing = 0.1, ncol=2)
 
-    #ax.legend([], loc='center left', bbox_to_anchor=(1, 0.5))
-    #box = ax.get_position()
-    #ax.set_position([box.x0, box.y0+.05, box.width, box.height*0.95])
     ax.minorticks_on()
     ax.grid(which='minor', color='lightgray', linewidth=0.6)
     ax.tick_params(which='minor', bottom=False, left=False)
@@ -462,17 +413,6 @@ if 'trigger_plots_plus' in plot_types:
     trace_list = sorted([p.as_posix() for p in Path(trace_folder).glob("*")])
     num_traces = len(trace_list)
     
-    query_list = list()
-    
-    expl_specs = {
-        "base_path" : f'./data/expl_configs/{experiment_name}',
-        "filename" : 'explconfig1.json'
-    }
-    
-    config = dict()
-    config['data_for_plotting'] = True
-    config['expl_specs'] = expl_specs
-    
     trigger_times = np.zeros((len(rules), num_traces))
     done_times = np.zeros((len(rules), num_traces))
     extra_sat_times = np.zeros((len(extraRules), num_traces))
@@ -487,12 +427,7 @@ if 'trigger_plots_plus' in plot_types:
     percent_traces_violated = np.zeros(len(rules))
         
     for i in range(0,num_traces):
-        #print('trace number is now ', i)
-        trace_data_loc = {
-            "base_path" : trace_list[i],
-            "filename" : ''
-        }
-        config['trace_data_loc'] = trace_data_loc
+        
         path = trace_list[i]
         with open(path, "r") as f:
             this_trace = json.load(f)
@@ -505,7 +440,7 @@ if 'trigger_plots_plus' in plot_types:
                 query = dict()
                 query['t0*'] = tstp
                 query['ruleNo'] = rule_no
-                query['branch'] = f'{rule_no}.0.0' # Want to find the (first) arg activation times
+                query['node'] = f'{rule_no}.0.0' # Want to find the (first) arg activation times
                 query['t*'] = tstp
                 query_list.append(query)
         
@@ -513,18 +448,28 @@ if 'trigger_plots_plus' in plot_types:
             query = dict()
             query['t0*'] = 0
             query['ruleNo'] = rule_no
-            query['branch'] = str(rule_no) # Want to find the sat times of extra rule
+            query['node'] = str(rule_no) # Want to find the sat times of extra rule
             query['t*'] = 0
             query_list.append(query)
-        
-        config['query_list_for_plotting'] = query_list
 
-        #print('query_list: ', query_list)
-        #print('config query list: ', config['query_list_for_plotting'])
-        _, _, plotting_data = re.run_explanation(**config)
-        #print('first plotting data:')
-        #print(plotting_data)
-        
+        # pass query list to explainer for this trace  
+        trace_data_loc = {
+            "base_path" : trace_list[i],
+            "filename" : ''
+        }
+        # Expl mode set to 'default'. Allows us to input a query list
+        expl_specs = {
+            "mode" : 'default',
+            "query_list" : query_list
+        }
+            
+        # Prepare config for function call
+        config = dict()
+        config['trace_data_loc'] = trace_data_loc
+        config['expl_specs'] = expl_specs
+        # Call explanation alg to get required diagnostic information
+        _, plotting_data = re.run_explanation(**config)
+
         # First handle the easy satisfaction extra rules
         for ridx, rule_no in enumerate(extraRules):
             #print('rule_no is: ', rule_no)
@@ -567,12 +512,20 @@ if 'trigger_plots_plus' in plot_types:
                 query = dict()
                 query['t0*'] = tt
                 query['ruleNo'] = rule_no
-                query['branch'] = f'{rule_no}.0.1' # Want to find the (first) arg activation times
+                query['node'] = f'{rule_no}.0.1' # Want to find the (first) arg activation times
                 query['t*'] = tt
                 query_list_conseq = [query]
                 
-                config['query_list_for_plotting'] = query_list_conseq
-                _, _, plotting_data_conseq = re.run_explanation(**config)
+                # Expl mode set to 'default'. Allows us to input a query list
+                expl_specs = {
+                    "mode" : 'default',
+                    "query_list" : query_list
+                }
+            
+                # Prepare config for function call
+                config['expl_specs'] = expl_specs
+                config['query_list'] = query_list_conseq
+                _, plotting_data_conseq = re.run_explanation(**config)
                 
                 tau_s = plotting_data_conseq[rule_no][f'{rule_no}.0.1']['tau_s'][tt]
                 tau_i = plotting_data_conseq[rule_no][f'{rule_no}.0.1']['tau_i'][tt]
@@ -647,12 +600,7 @@ if 'trigger_plots_plus' in plot_types:
         ax.scatter(x=trace_x, y=plot_failed_times, marker=fail_point, s=50, c='r')
         plot_nontriggered_times = not_triggered_traces[ridx]
         ax.scatter(x=trace_x, y=plot_nontriggered_times, marker=nontriggered_point, s=100, c='cornflowerblue')
-        
-
-    #for rule_no in rules:
-    #    plot_trace_failures = trace_failures[rule_no]
-    #    ax.plot(trace_x, plot_trace_failures, 'rx', markersize=10, mew=3)
-        
+            
     ax.axis([0, x_max, 0, timeout_step_count+2])
     
     plt.title(plot_title)
