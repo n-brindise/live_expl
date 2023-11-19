@@ -1,7 +1,7 @@
 import warnings
 import fire, os, json
 import logging
-from modules.utils import create_logger
+from pointwise_in_time.utils import create_logger
 
 if __name__ == '__main__':
     # create logger
