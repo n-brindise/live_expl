@@ -2,12 +2,13 @@ from pathlib import Path
 import os
 import sys
 for i in range(5):
-    if not (Path.cwd()/"modules").exists(): os.chdir(Path.cwd().parent.as_posix())
+    if not (Path.cwd()/"pointwise_in_time").exists(): os.chdir(Path.cwd().parent.as_posix())
     else: sys.path.append(Path.cwd().as_posix())
 
 from pathlib import Path
 import numpy as np
-import modules.run_explanation as run_expl
+#import pointwise_in_time.run_explanation as run_expl
+import run_explanation as run_expl
 
 ###############################################################################
 # Initial tree evaluation modules (t0 assessments)
@@ -402,13 +403,13 @@ def untilUquery(query, rule_dicts):
         tau_v = np.zeros(trace_len - t0_star) 
     
         for timestep in range(t0_star,trace_len):
-            # Use formula for "next"
+            # Use formula for "until"
             if t0sArg1[timestep] == 1:
                 tau_a[timestep-t0_star] = 1
                 if t0sArg2[timestep] ==1:
                     tau_s[timestep-t0_star] = 1
                     if timestep + 1 < trace_len:
-                        tau_i[timestep-t0_star:None] = np.ones(trace_len - (timestep+1))
+                        tau_i[timestep-t0_star+1:None] = np.ones(trace_len - (timestep+1))
                     break
                 else: # arg2 doesn't hold at t0=timestep
                     # For Until, we must have arg2 be satisfied eventually...

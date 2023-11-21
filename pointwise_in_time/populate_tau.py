@@ -2,15 +2,15 @@ from pathlib import Path
 import os
 import sys
 for i in range(5):
-    if not (Path.cwd()/"modules").exists(): os.chdir(Path.cwd().parent.as_posix())
+    if not (Path.cwd()/"pointwise_in_time").exists(): os.chdir(Path.cwd().parent.as_posix())
     else: sys.path.append(Path.cwd().as_posix())
 
 ###############################################################################################
 # %% #
 from pathlib import Path
 import numpy as np
-import modules.run_explanation as run_expl
-import modules.ltl_modules as mods
+import pointwise_in_time.run_explanation as run_expl
+import pointwise_in_time.ltl_modules as mods
 
 # Optimal Explanation: (Under Construction)
 

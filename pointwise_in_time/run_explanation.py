@@ -5,16 +5,22 @@ from pathlib import Path
 import os
 import sys
 for i in range(5):
-    if not (Path.cwd()/"modules").exists(): os.chdir(Path.cwd().parent.as_posix())
+    #if not (Path.cwd()/"modules").exists(): os.chdir(Path.cwd().parent.as_posix())
+    if not (Path.cwd()/"pointwise_in_time").exists(): os.chdir(Path.cwd().parent.as_posix())
     else: sys.path.append(Path.cwd().as_posix())
+    #print(Path.cwd())
 
 import json
 import numpy as np
 import matplotlib.pyplot as plt
 
-from modules import ltl_modules as mods
-from modules import parse_trees as pt
-from modules import populate_tau as oe
+#print(Path.cwd())
+from pointwise_in_time import ltl_modules as mods
+from pointwise_in_time import parse_trees as pt
+from pointwise_in_time import populate_tau as oe
+# import ltl_modules as mods
+# import parse_trees as pt
+# import populate_tau as oe
 
 def load_json_data(**data_loc):
     # Function to load any data in json file as a dictionary
@@ -333,11 +339,11 @@ if __name__ == '__main__':
     #        "t*" : 2 (t value for query (integer))
     #        }, ...]
     
-    experiment_name = 'manual_play'
+    experiment_name = 'mineRL_test'
     explanation_mode = 'manual'
     
     trace_data_location = {
-        "base_path" : f'./data/trace_data/{experiment_name}',
+        "base_path" : f'data/trace_data/{experiment_name}',
         "filename" : 'trace0.json'
         }
     

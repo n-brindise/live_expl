@@ -3,7 +3,7 @@ import os
 import sys
 import json
 for i in range(5):
-    if not (Path.cwd()/"modules").exists(): os.chdir(Path.cwd().parent.as_posix())
+    if not (Path.cwd()/"pointwise_in_time").exists(): os.chdir(Path.cwd().parent.as_posix())
     else: sys.path.append(Path.cwd().as_posix())
 
 from pathlib import Path
@@ -98,7 +98,7 @@ def index_formula(raw_str):
             empty_tree_nodes.append(["G",list()])
             i = i+1
         # 'neg' with parentheses or spaces:
-        elif formula_str[i:i+3] == 'neg' and ((formula_str[i-1] == ')' or formula_str[i-1] == ' ') and (formula_str[i+3] == '(' or formula_str[i+3] == ' ')):
+        elif formula_str[i:i+3] == 'neg' or formula_str[i:i+3] == 'not' and ((formula_str[i-1] == ')' or formula_str[i-1] == ' ') and (formula_str[i+3] == '(' or formula_str[i+3] == ' ')):
             op_idxs.append('neg')
             paren_map.append(paren_level)
             operator_strength.append(2)
